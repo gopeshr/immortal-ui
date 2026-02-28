@@ -34,6 +34,22 @@ const cards = [
     href: "/register",
   },
   {
+    icon: "▣",
+    title: "Library",
+    desc: "Movies, books, and series that shaped your world.",
+    status: "12 items · 4 favorites",
+    statusType: "complete" as const,
+    href: "/library",
+  },
+  {
+    icon: "☾",
+    title: "Dream Log",
+    desc: "Your sleeping mind, recorded and preserved.",
+    status: "7 dreams logged",
+    statusType: "pending" as const,
+    href: "/dreams",
+  },
+  {
     icon: "✉",
     title: "Final Message",
     desc: "Your words for the first anniversary.",
@@ -57,7 +73,15 @@ const activity = [
     text: "Recovery score: 82 · Sleep: 7h 14m · HRV: 58ms",
   },
   {
-    label: "Profile updated — 2 days ago",
+    label: "Library — 3 days ago",
+    text: "Added \"Interstellar\" to movies. Rated 5 stars. \"The docking scene still makes me hold my breath.\"",
+  },
+  {
+    label: "Dream logged — 5 days ago",
+    text: "\"The Voice Notes from the Future\" — a strange dream about receiving voice notes from yourself, 20 years in the future.",
+  },
+  {
+    label: "Profile updated — 1 week ago",
     text: "Added 3 new photos and updated your personal statement",
   },
   {
@@ -96,12 +120,12 @@ export default function DashboardPage() {
           <span className="text-[10px] tracking-[3px] uppercase text-muted">
             Legacy Completeness
           </span>
-          <span className="font-serif text-[32px] text-gold">65%</span>
+          <span className="font-serif text-[32px] text-gold">75%</span>
         </div>
         <div className="h-0.5 bg-border relative">
           <div
             className="h-full bg-gradient-to-r from-gold to-gold-light transition-all duration-1000"
-            style={{ width: "65%" }}
+            style={{ width: "75%" }}
           />
         </div>
       </div>

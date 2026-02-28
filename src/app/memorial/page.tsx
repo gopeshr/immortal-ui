@@ -15,6 +15,61 @@ const trivia = [
   "He sent over 3,400 voice notes in his lifetime. His most common opener: \u201CEhen, so I was thinking...\u201D",
 ];
 
+const favorites = [
+  {
+    type: "Movie",
+    title: "City of God",
+    creator: "Fernando Meirelles",
+    year: 2002,
+    rating: 5,
+  },
+  {
+    type: "Movie",
+    title: "Interstellar",
+    creator: "Christopher Nolan",
+    year: 2014,
+    rating: 5,
+  },
+  {
+    type: "Book",
+    title: "Things Fall Apart",
+    creator: "Chinua Achebe",
+    year: 1958,
+    rating: 5,
+  },
+  {
+    type: "Series",
+    title: "The Wire",
+    creator: "David Simon",
+    year: 2002,
+    rating: 5,
+  },
+];
+
+const notableDreams = [
+  {
+    date: "September 12, 2064",
+    title: "The Kitchen in Lagos",
+    summary:
+      "He dreamed of his mother\u2019s kitchen \u2014 the smell of pepper soup, the sound of the radio, and a door that opened to a garden he\u2019d never seen.",
+    mood: "Nostalgic",
+  },
+  {
+    date: "March 1, 2067",
+    title: "Flying Over the Niger",
+    summary:
+      "He flew above the river at sunset, watching the bridges turn to gold. He said he could hear singing from below the water.",
+    mood: "Peaceful",
+  },
+  {
+    date: "December 31, 2066",
+    title: "Midnight at the Crossroads",
+    summary:
+      "He stood at a crossroads he recognized from childhood. Each road glowed a different color. He chose the gold one. It led back to his front door.",
+    mood: "Lucid",
+  },
+];
+
 const healthStats = [
   { value: "7.4h", label: "Avg sleep" },
   { value: "78", label: "Avg recovery" },
@@ -175,6 +230,58 @@ export default function MemorialPage() {
             </div>
           </div>
         ))}
+
+        {/* Favorites */}
+        <div className="mt-16">
+          <SectionTitle>His Favorites — What He Loved</SectionTitle>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-16">
+            {favorites.map((fav, i) => (
+              <div
+                key={i}
+                className="bg-surface border border-border border-l-2 border-l-gold px-8 py-6"
+              >
+                <div className="text-[8px] tracking-[3px] text-gold uppercase mb-2">
+                  {fav.type}
+                </div>
+                <div className="font-serif text-[18px] text-ivory leading-relaxed">
+                  {fav.title}
+                </div>
+                <div className="text-[11px] text-muted mt-1">
+                  {fav.creator}, {fav.year} &middot;{" "}
+                  <span className="text-gold">
+                    {"★".repeat(fav.rating)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Notable Dreams */}
+        <div>
+          <SectionTitle>His Dreams — Landscapes of the Sleeping Mind</SectionTitle>
+          {notableDreams.map((dream, i) => (
+            <div
+              key={i}
+              className="bg-surface border border-border border-l-2 border-l-gold px-8 py-6 mb-3"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-[8px] tracking-[3px] text-gold uppercase">
+                  {dream.date}
+                </span>
+                <span className="px-2.5 py-0.5 border border-border text-[8px] tracking-[2px] uppercase text-muted">
+                  {dream.mood}
+                </span>
+              </div>
+              <div className="font-serif text-[18px] text-ivory leading-relaxed mb-1">
+                {dream.title}
+              </div>
+              <div className="text-[12px] text-muted leading-7">
+                {dream.summary}
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Final Words */}
         <div className="mt-16 pt-12 border-t border-border text-center">

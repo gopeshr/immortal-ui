@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "My Legacy" },
+  { href: "/library", label: "Library" },
+  { href: "/dreams", label: "Dreams" },
   { href: "/memorial", label: "Memorial Preview" },
   { href: "/register", label: "Begin" },
 ];
@@ -24,7 +26,7 @@ export function Navbar() {
         </div>
       </Link>
 
-      <ul className="flex gap-10 list-none">
+      <ul className="flex gap-8 list-none">
         {links.map((link) => (
           <li key={link.href}>
             <Link
