@@ -1,412 +1,411 @@
 "use client";
 
-import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-const DEFAULT_TRAITS = [
-  "Loyal",
-  "Funny",
-  "Stubborn",
-  "Generous",
-  "Creative",
-  "Protective",
-  "Adventurous",
-  "Overthinks everything",
-  "Early riser",
-  "Night owl",
-  "Always late but worth it",
-  "The fixer",
-  "The listener",
-  "The dreamer",
-  "Fiercely independent",
-  "Deeply empathetic",
+type RegisterField =
+  | "fullName"
+  | "email"
+  | "password"
+  | "confirmPassword"
+  | "intent"
+  | "consent";
+
+type RegisterErrors = Partial<Record<RegisterField, string>>;
+
+interface RegisterFormState {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  intent: string;
+  consent: boolean;
+}
+
+const INTENTS = [
+  {
+    id: "archive",
+    label: "Archive My Story",
+    preview: "A curated memory vault for the people who know your voice.",
+  },
+  {
+    id: "legacy",
+    label: "Build Family Legacy",
+    preview: "A structured timeline your family can return to across generations.",
+  },
+  {
+    id: "quiet",
+    label: "Keep It Private",
+    preview: "A private space that stays sealed until you decide otherwise.",
+  },
 ];
 
-const HEALTH_DEVICES = [
-  { id: "whoop", icon: "\u231A", label: "WHOOP", connectedLabel: "WHOOP Connected" },
-  { id: "apple", icon: "\uD83C\uDF4E", label: "Apple Health", connectedLabel: "Apple Health Connected" },
-  { id: "garmin", icon: "\uD83C\uDFC3", label: "Garmin", connectedLabel: "Garmin Connected" },
-  { id: "fitbit", icon: "\uD83D\uDC9A", label: "Fitbit", connectedLabel: "Fitbit Connected" },
-];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function evaluatePassword(password: string) {
+  const hasLength = password.length >= 8;
+  const hasLetter = /[A-Za-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const score = [hasLength, hasLetter, hasNumber].filter(Boolean).length;
+
+  return {
+    hasLength,
+    hasLetter,
+    hasNumber,
+    score,
+    valid: hasLength && hasLetter && hasNumber,
+  };
+}
+
+function validateForm(values: RegisterFormState): RegisterErrors {
+  const errors: RegisterErrors = {};
+  const passwordCheck = evaluatePassword(values.password);
+
+  if (!values.fullName.trim() || values.fullName.trim().length < 2) {
+    errors.fullName = "Enter your full name.";
+  }
+
+  if (!EMAIL_REGEX.test(values.email.trim())) {
+    errors.email = "Enter a valid email address.";
+  }
+
+  if (!passwordCheck.valid) {
+    errors.password = "Use at least 8 characters with letters and numbers.";
+  }
+
+  if (values.confirmPassword !== values.password || !values.confirmPassword) {
+    errors.confirmPassword = "Passwords do not match.";
+  }
+
+  if (!values.intent) {
+    errors.intent = "Select how you want to begin.";
+  }
+
+  if (!values.consent) {
+    errors.consent = "You need to accept this to continue.";
+  }
+
+  return errors;
+}
 
 export default function RegisterPage() {
-  const [selectedTraits, setSelectedTraits] = useState<Set<string>>(new Set());
-  const [customTraits, setCustomTraits] = useState<string[]>([]);
-  const [customTraitInput, setCustomTraitInput] = useState("");
-  const [connectedDevices, setConnectedDevices] = useState<Set<string>>(new Set(["whoop"]));
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
-  const [toggles, setToggles] = useState({
-    anniversaryPosts: true,
-    birthdayRemembrance: true,
-    biometricPublic: false,
-    familyMemories: true,
+  const router = useRouter();
+  const timerRef = useRef<number | null>(null);
+
+  const fullNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+  const intentRef = useRef<HTMLButtonElement>(null);
+  const consentRef = useRef<HTMLInputElement>(null);
+
+  const [form, setForm] = useState<RegisterFormState>({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    intent: "",
+    consent: false,
   });
+  const [errors, setErrors] = useState<RegisterErrors>({});
+  const [touched, setTouched] = useState<Partial<Record<RegisterField, boolean>>>(
+    {}
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const passwordState = useMemo(() => evaluatePassword(form.password), [form.password]);
+  const previewIntent = INTENTS.find((intent) => intent.id === form.intent);
 
-  function toggleTrait(trait: string) {
-    setSelectedTraits((prev) => {
-      const next = new Set(prev);
-      if (next.has(trait)) next.delete(trait);
-      else next.add(trait);
-      return next;
-    });
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  function setField<K extends keyof RegisterFormState>(field: K, value: RegisterFormState[K]) {
+    const next = { ...form, [field]: value };
+    setForm(next);
+    if (touched[field]) {
+      setErrors(validateForm(next));
+    }
   }
 
-  function addCustomTrait() {
-    const val = customTraitInput.trim();
-    if (!val) return;
-    setCustomTraits((prev) => [...prev, val]);
-    setSelectedTraits((prev) => new Set(prev).add(val));
-    setCustomTraitInput("");
+  function touchField(field: RegisterField) {
+    const nextTouched = { ...touched, [field]: true };
+    setTouched(nextTouched);
+    setErrors(validateForm(form));
   }
 
-  function toggleDevice(id: string) {
-    setConnectedDevices((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function focusFirstError(nextErrors: RegisterErrors) {
+    const order: RegisterField[] = [
+      "fullName",
+      "email",
+      "password",
+      "confirmPassword",
+      "intent",
+      "consent",
+    ];
+
+    for (const field of order) {
+      if (!nextErrors[field]) continue;
+      if (field === "fullName") fullNameRef.current?.focus();
+      if (field === "email") emailRef.current?.focus();
+      if (field === "password") passwordRef.current?.focus();
+      if (field === "confirmPassword") confirmPasswordRef.current?.focus();
+      if (field === "intent") intentRef.current?.focus();
+      if (field === "consent") consentRef.current?.focus();
+      break;
+    }
   }
 
-  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []).slice(0, 8);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPhotoPreviews((prev) => [...prev, ev.target?.result as string].slice(0, 20));
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSubmitting) return;
 
-  function toggleSetting(key: keyof typeof toggles) {
-    setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
+    const nextTouched: Partial<Record<RegisterField, boolean>> = {
+      fullName: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      intent: true,
+      consent: true,
+    };
 
-  const allTraits = [...DEFAULT_TRAITS, ...customTraits];
+    setTouched(nextTouched);
+    const nextErrors = validateForm(form);
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstError(nextErrors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    timerRef.current = window.setTimeout(() => {
+      router.push("/onboarding");
+    }, 900);
+  }
 
   return (
-    <div className="pt-30 pb-20 px-12 max-w-[900px] mx-auto">
-      {/* Header */}
-      <div className="mb-16">
-        <p className="text-[10px] tracking-[5px] text-gold uppercase mb-4">
-          Step 01 — Your Story
-        </p>
-        <h1 className="font-serif text-[56px] font-light leading-none mb-4">
-          Tell us
-          <br />
-          <em className="italic text-gold">who you are</em>
-        </h1>
-        <p className="text-muted text-[12px] tracking-[1px] leading-8">
-          This is your legacy profile. Be as honest, as vivid, as you as
-          possible.
-          <br />
-          No one will see this until you choose — or until you&apos;re gone.
-        </p>
-      </div>
+    <div className="relative min-h-screen pt-28 pb-16 px-6 md:px-12 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_55%_at_22%_55%,rgba(201,168,76,0.1)_0%,transparent_70%),radial-gradient(ellipse_40%_45%_at_80%_20%,rgba(201,168,76,0.08)_0%,transparent_70%)]" />
 
-      {/* Personal Details */}
-      <section className="mb-14 pb-14 border-b border-border">
-        <SectionLabel>Personal Details</SectionLabel>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormGroup label="First Name">
-            <input type="text" placeholder="James" />
-          </FormGroup>
-          <FormGroup label="Last Name">
-            <input type="text" placeholder="Okonkwo" />
-          </FormGroup>
-          <FormGroup label="Date of Birth">
-            <input type="date" />
-          </FormGroup>
-          <FormGroup label="Place of Birth">
-            <input type="text" placeholder="Lagos, Nigeria" />
-          </FormGroup>
-          <FormGroup
-            label="A sentence about yourself — as raw and real as possible"
-            full
-          >
-            <textarea placeholder="I'm someone who cries at sunsets, loves arguing about football, and makes the best jollof rice in the family. I was never the best at goodbyes." />
-          </FormGroup>
-          <FormGroup
-            label="What do you want people to remember most about you?"
-            full
-          >
-            <textarea placeholder="That I always showed up. Even when it was hard. Even when I was scared." />
-          </FormGroup>
-        </div>
-      </section>
-
-      {/* Photos */}
-      <section className="mb-14 pb-14 border-b border-border">
-        <SectionLabel>Your Best Photos</SectionLabel>
-        <p className="text-muted text-[12px] tracking-[1px] leading-8 mb-6">
-          Upload photos where you feel most yourself. Candid, posed, wherever —
-          as long as they feel like <em className="italic">you</em>.
-        </p>
-
-        <div
-          className="border border-dashed border-border p-12 text-center cursor-pointer transition-all duration-300 relative overflow-hidden hover:border-gold hover:bg-gold-dim"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={handlePhotoUpload}
-          />
-          <div className="w-12 h-12 border border-border flex items-center justify-center mx-auto mb-4 text-2xl text-gold">
-            ✦
-          </div>
-          <div className="text-[11px] tracking-[2px] text-muted">
-            Click or drag to upload your photos
-          </div>
-          <div className="text-[9px] tracking-[1px] text-muted/50 mt-2">
-            JPG, PNG, WEBP — up to 20 photos
-          </div>
-        </div>
-
-        {photoPreviews.length > 0 && (
-          <div className="grid grid-cols-4 gap-2 mt-4">
-            {photoPreviews.map((src, i) => (
-              <div
-                key={i}
-                className="aspect-square bg-surface-2 border border-border overflow-hidden"
-              >
-                <img
-                  src={src}
-                  alt={`Upload ${i + 1}`}
-                  className="w-full h-full object-cover"
-                />
+      <div className="relative z-2 max-w-[1140px] mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-7 lg:gap-10">
+        <section className="relative border border-border bg-[linear-gradient(150deg,rgba(17,17,17,0.95)_0%,rgba(10,10,10,0.9)_100%)] p-8 md:p-10 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2">
+              <div className="auth-orbit relative w-[290px] h-[290px] md:w-[360px] md:h-[360px] border border-gold/20 rounded-full">
+                <div className="auth-orbit-pulse absolute inset-[20px] border border-gold/20 rounded-full" />
+                <div className="absolute inset-[70px] border border-gold/15 rounded-full" />
               </div>
-            ))}
+            </div>
+            <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
           </div>
-        )}
-      </section>
 
-      {/* Traits */}
-      <section className="mb-14 pb-14 border-b border-border">
-        <SectionLabel>Your Defining Traits</SectionLabel>
-        <p className="text-muted text-[12px] tracking-[1px] leading-8 mb-6">
-          Select traits that feel genuinely you. Add your own.
-        </p>
+          <p className="relative text-[10px] tracking-[5px] text-gold uppercase mb-6">
+            Account Creation
+          </p>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {allTraits.map((trait) => (
-            <button
-              key={trait}
-              onClick={() => toggleTrait(trait)}
-              className={`px-4 py-2 border text-[10px] tracking-[2px] uppercase cursor-pointer transition-all duration-200 ${
-                selectedTraits.has(trait)
-                  ? "border-gold text-gold bg-gold-dim"
-                  : "border-border text-muted hover:border-gold hover:text-gold hover:bg-gold-dim"
-              }`}
+          <h1 className="relative font-serif text-[clamp(40px,6vw,74px)] font-light leading-[0.9] mb-6">
+            Legacy starts
+            <br />
+            with <em className="italic text-gold">identity</em>
+          </h1>
+
+          <p className="relative text-[12px] tracking-[1px] text-muted leading-8 max-w-[420px] mb-8">
+            This first layer creates your private entry point. The details you
+            add now shape how your voice, memory, and rituals are preserved.
+          </p>
+
+          <div className="relative bg-surface/80 border border-border p-6 md:p-7 max-w-[470px]">
+            <div className="text-[9px] tracking-[3px] uppercase text-gold mb-4">
+              Live Preview
+            </div>
+            <div className="font-serif text-[28px] leading-none mb-3">
+              {form.fullName.trim() || "Your Name"}
+            </div>
+            <div className="text-[11px] tracking-[2px] uppercase text-muted mb-3">
+              {previewIntent ? previewIntent.label : "Intent not selected"}
+            </div>
+            <p className="text-[11px] text-muted leading-7">
+              {previewIntent
+                ? previewIntent.preview
+                : "Select a direction to preview how your memorial entry is framed."}
+            </p>
+          </div>
+        </section>
+
+        <section className="border border-border bg-surface/90 p-8 md:p-10">
+          <div className="text-[9px] tracking-[4px] uppercase text-gold mb-3">
+            Step 01
+          </div>
+          <h2 className="font-serif text-[42px] md:text-[48px] font-light leading-none mb-6">
+            Register
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <Field label="Full Name" error={touched.fullName ? errors.fullName : undefined}>
+              <input
+                ref={fullNameRef}
+                type="text"
+                value={form.fullName}
+                onChange={(event) => setField("fullName", event.target.value)}
+                onBlur={() => touchField("fullName")}
+                placeholder="James Emmanuel Okonkwo"
+                autoComplete="name"
+              />
+            </Field>
+
+            <Field label="Email" error={touched.email ? errors.email : undefined}>
+              <input
+                ref={emailRef}
+                type="email"
+                value={form.email}
+                onChange={(event) => setField("email", event.target.value)}
+                onBlur={() => touchField("email")}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </Field>
+
+            <Field label="Password" error={touched.password ? errors.password : undefined}>
+              <input
+                ref={passwordRef}
+                type="password"
+                value={form.password}
+                onChange={(event) => setField("password", event.target.value)}
+                onBlur={() => touchField("password")}
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+              />
+              <div className="mt-2">
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((index) => (
+                    <span
+                      key={index}
+                      className={`h-1 flex-1 transition-colors ${
+                        passwordState.score > index ? "bg-gold" : "bg-border"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className="text-[9px] tracking-[1px] text-muted mt-1">
+                  {passwordState.score === 0 && "Password strength: empty"}
+                  {passwordState.score === 1 && "Password strength: weak"}
+                  {passwordState.score === 2 && "Password strength: fair"}
+                  {passwordState.score === 3 && "Password strength: strong"}
+                </p>
+              </div>
+            </Field>
+
+            <Field
+              label="Confirm Password"
+              error={touched.confirmPassword ? errors.confirmPassword : undefined}
             >
-              {trait}
+              <input
+                ref={confirmPasswordRef}
+                type="password"
+                value={form.confirmPassword}
+                onChange={(event) => setField("confirmPassword", event.target.value)}
+                onBlur={() => touchField("confirmPassword")}
+                placeholder="Repeat password"
+                autoComplete="new-password"
+              />
+            </Field>
+
+            <div>
+              <label className="text-[9px] tracking-[3px] uppercase text-muted block mb-2">
+                Intent
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {INTENTS.map((intent, index) => {
+                  const selected = form.intent === intent.id;
+                  return (
+                    <button
+                      key={intent.id}
+                      ref={index === 0 ? intentRef : undefined}
+                      type="button"
+                      onClick={() => {
+                        setField("intent", intent.id);
+                        setTouched((prev) => ({ ...prev, intent: true }));
+                        setErrors(validateForm({ ...form, intent: intent.id }));
+                      }}
+                      onBlur={() => touchField("intent")}
+                      className={`px-3 py-3 border text-[9px] tracking-[2px] uppercase text-left transition-colors ${
+                        selected
+                          ? "border-gold bg-gold-dim text-gold"
+                          : "border-border text-muted hover:border-gold hover:text-gold"
+                      }`}
+                    >
+                      {intent.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {touched.intent && errors.intent && (
+                <p className="text-[10px] text-[#d38787] mt-2">{errors.intent}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-start gap-3 text-[11px] text-muted leading-6 cursor-pointer">
+                <input
+                  ref={consentRef}
+                  type="checkbox"
+                  checked={form.consent}
+                  onChange={(event) => setField("consent", event.target.checked)}
+                  onBlur={() => touchField("consent")}
+                />
+                <span>
+                  I understand this account controls how my private legacy data
+                  is saved and accessed.
+                </span>
+              </label>
+              {touched.consent && errors.consent && (
+                <p className="text-[10px] text-[#d38787] mt-1">{errors.consent}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-gold text-black px-8 py-4 text-[10px] tracking-[4px] uppercase font-normal transition-all duration-300 hover:bg-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(201,168,76,0.28)] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isSubmitting ? "Preparing Your Onboarding..." : "Create Account"}
             </button>
-          ))}
-        </div>
+          </form>
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={customTraitInput}
-            onChange={(e) => setCustomTraitInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addCustomTrait()}
-            placeholder="Add your own trait..."
-            className="flex-1"
-          />
-          <button
-            onClick={addCustomTrait}
-            className="bg-transparent border border-border text-gold px-6 text-xl cursor-pointer transition-all duration-200 hover:border-gold hover:bg-gold-dim shrink-0"
-          >
-            +
-          </button>
-        </div>
-      </section>
-
-      {/* Biometric Legacy */}
-      <section className="mb-14 pb-14 border-b border-border">
-        <SectionLabel>Biometric Legacy</SectionLabel>
-        <p className="text-muted text-[12px] tracking-[1px] leading-8 mb-6">
-          Your data tells the story of how you lived. Connect your health
-          devices to preserve these insights.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-surface border border-border p-6 text-center transition-colors hover:border-gold">
-            <div className="font-serif text-[40px] text-gold leading-none mb-1">
-              7.2
-            </div>
-            <div className="text-[9px] tracking-[3px] uppercase text-muted">
-              Avg Sleep (hrs)
-            </div>
-          </div>
-          <div className="bg-surface border border-border p-6 text-center transition-colors hover:border-gold">
-            <div className="font-serif text-[40px] text-gold leading-none mb-1">
-              82
-            </div>
-            <div className="text-[9px] tracking-[3px] uppercase text-muted">
-              Recovery Score
-            </div>
-          </div>
-          <div className="bg-surface border border-border p-6 text-center transition-colors hover:border-gold">
-            <div className="font-serif text-[40px] text-gold leading-none mb-1">
-              68
-            </div>
-            <div className="text-[9px] tracking-[3px] uppercase text-muted">
-              Resting HR (bpm)
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3 flex-wrap">
-          {HEALTH_DEVICES.map((device) => {
-            const connected = connectedDevices.has(device.id);
-            return (
-              <button
-                key={device.id}
-                onClick={() => toggleDevice(device.id)}
-                className={`flex items-center gap-2.5 px-5 py-3 border text-[10px] tracking-[2px] cursor-pointer transition-all duration-300 ${
-                  connected
-                    ? "border-gold text-gold bg-gold-dim"
-                    : "border-border text-ivory hover:border-gold hover:text-gold"
-                }`}
-              >
-                <span className="text-lg">{device.icon}</span>
-                {connected ? device.connectedLabel : device.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Memorial Preferences */}
-      <section className="mb-14 pb-14 border-b border-border">
-        <SectionLabel>Memorial Preferences</SectionLabel>
-        <div className="text-[11px] tracking-[1px] text-muted leading-8 mb-6">
-          Decide how your legacy should be shared after you&apos;re gone. These
-          preferences guide what gets posted, when, and to whom.
-        </div>
-
-        <ToggleRow
-          label="Annual death anniversary posts"
-          desc="Share a memory or trivia about you on each anniversary"
-          enabled={toggles.anniversaryPosts}
-          onToggle={() => toggleSetting("anniversaryPosts")}
-        />
-        <ToggleRow
-          label="Birthday remembrances"
-          desc="Remind loved ones of your birthday each year"
-          enabled={toggles.birthdayRemembrance}
-          onToggle={() => toggleSetting("birthdayRemembrance")}
-        />
-        <ToggleRow
-          label="Share biometric insights publicly"
-          desc="Allow your health data to be shown on your memorial"
-          enabled={toggles.biometricPublic}
-          onToggle={() => toggleSetting("biometricPublic")}
-        />
-        <ToggleRow
-          label="Allow family to add memories"
-          desc="Trusted contacts can contribute photos and stories"
-          enabled={toggles.familyMemories}
-          onToggle={() => toggleSetting("familyMemories")}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <FormGroup label="Trusted Guardian (name)">
-            <input
-              type="text"
-              placeholder="Who will manage your memorial?"
-            />
-          </FormGroup>
-          <FormGroup label="Guardian Email">
-            <input type="email" placeholder="guardian@example.com" />
-          </FormGroup>
-          <FormGroup
-            label="Final message — words you want read on your first anniversary"
-            full
-          >
-            <textarea placeholder="If you're reading this, then I'm gone. And I just want you to know..." />
-          </FormGroup>
-        </div>
-      </section>
-
-      <Link
-        href="/dashboard"
-        className="block w-full bg-gold text-black text-center px-10 py-4 text-[10px] tracking-[4px] uppercase font-normal transition-all duration-300 hover:bg-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(201,168,76,0.3)]"
-      >
-        Save & Continue to My Legacy &rarr;
-      </Link>
+          <p className="text-[11px] text-muted mt-5">
+            Already have an account?{" "}
+            <Link href="/login" className="text-gold hover:text-gold-light">
+              Login
+            </Link>
+          </p>
+        </section>
+      </div>
     </div>
   );
 }
 
-/* ---- Sub-components ---- */
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[9px] tracking-[4px] text-gold uppercase mb-8 flex items-center gap-4">
-      {children}
-      <span className="flex-1 h-px bg-border" />
-    </div>
-  );
-}
-
-function FormGroup({
+function Field({
   label,
-  full,
+  error,
   children,
 }: {
   label: string;
-  full?: boolean;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`flex flex-col gap-2 ${full ? "md:col-span-2" : ""}`}>
-      <label className="text-[9px] tracking-[3px] uppercase text-muted">
+    <div>
+      <label className="text-[9px] tracking-[3px] uppercase text-muted block mb-2">
         {label}
       </label>
       {children}
-    </div>
-  );
-}
-
-function ToggleRow({
-  label,
-  desc,
-  enabled,
-  onToggle,
-}: {
-  label: string;
-  desc: string;
-  enabled: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div className="flex justify-between items-center py-4 border-b border-border">
-      <div>
-        <div className="text-[11px] tracking-[1px] text-ivory">{label}</div>
-        <div className="text-[10px] text-muted mt-0.5">{desc}</div>
-      </div>
-      <button
-        onClick={onToggle}
-        className={`w-11 h-6 rounded-full relative cursor-pointer shrink-0 transition-all duration-300 ${
-          enabled
-            ? "bg-gold-dim border border-gold"
-            : "bg-surface-2 border border-border"
-        }`}
-      >
-        <span
-          className={`absolute w-4 h-4 rounded-full top-[3px] transition-all duration-300 ${
-            enabled ? "left-[21px] bg-gold" : "left-[3px] bg-muted"
-          }`}
-        />
-      </button>
+      {error && <p className="text-[10px] text-[#d38787] mt-2">{error}</p>}
     </div>
   );
 }

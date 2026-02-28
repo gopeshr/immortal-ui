@@ -7,7 +7,7 @@ const cards = [
     desc: "Your name, story, and the words you want remembered.",
     status: "Complete",
     statusType: "complete" as const,
-    href: "/register",
+    href: "/onboarding",
   },
   {
     icon: "◻",
@@ -15,7 +15,7 @@ const cards = [
     desc: "Upload images where you feel most yourself.",
     status: "3 uploaded — add more",
     statusType: "pending" as const,
-    href: "/register",
+    href: "/onboarding",
   },
   {
     icon: "◈",
@@ -23,7 +23,7 @@ const cards = [
     desc: "The qualities that define you at your core.",
     status: "7 traits selected",
     statusType: "complete" as const,
-    href: "/register",
+    href: "/onboarding",
   },
   {
     icon: "♡",
@@ -31,7 +31,7 @@ const cards = [
     desc: "WHOOP connected. Apple Health pending.",
     status: "1 device connected",
     statusType: "pending" as const,
-    href: "/register",
+    href: "/onboarding",
   },
   {
     icon: "▣",
@@ -55,7 +55,7 @@ const cards = [
     desc: "Your words for the first anniversary.",
     status: "Not written yet",
     statusType: "empty" as const,
-    href: "/register",
+    href: "/onboarding",
   },
   {
     icon: "⬡",
