@@ -59,8 +59,8 @@ export default function LoginPage() {
     };
   }, []);
 
-  function setField<K extends keyof LoginFormState>(field: K, value: LoginFormState[K]) {
-    const next = { ...form, [field]: value };
+  function setField(field: keyof LoginFormState, value: string | boolean) {
+    const next = { ...form, [field]: value } as LoginFormState;
     setForm(next);
     if (field !== "remember" && touched[field]) {
       setErrors(validate(next));
