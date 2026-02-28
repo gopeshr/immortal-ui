@@ -1,65 +1,55 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="relative flex items-center justify-center min-h-screen text-center overflow-hidden">
+      {/* Background radials */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_60%,rgba(201,168,76,0.06)_0%,transparent_70%),radial-gradient(ellipse_40%_40%_at_20%_20%,rgba(201,168,76,0.04)_0%,transparent_60%)]" />
+
+      {/* Center line */}
+      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gold to-transparent opacity-15 -translate-x-1/2" />
+
+      {/* Hero content */}
+      <div className="relative z-2 max-w-[720px] px-10 pt-30 pb-20">
+        <p className="animate-fade-in-delay-1 text-[10px] tracking-[6px] uppercase text-gold mb-8">
+          You will not be forgotten
+        </p>
+
+        <h1 className="animate-fade-in-delay-2 font-serif text-[clamp(64px,10vw,120px)] font-light leading-[0.9] -tracking-[2px] mb-8">
+          Live
+          <br />
+          <em className="italic text-gold">Forever</em>
+          <br />
+          in Memory
+        </h1>
+
+        <p className="animate-fade-in-delay-3 text-[13px] tracking-[2px] text-muted leading-8 max-w-[480px] mx-auto mb-14">
+          Immortal preserves the full texture of who you are &mdash; your
+          stories, your face, your sleep, your spirit &mdash; so the people you
+          love can hold onto you, always.
+        </p>
+
+        <div className="animate-fade-in-delay-4 flex gap-4 justify-center flex-wrap">
+          <Link
+            href="/register"
+            className="bg-gold text-black px-10 py-4 text-[10px] tracking-[4px] uppercase font-normal transition-all duration-300 hover:bg-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(201,168,76,0.3)]"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Begin Your Legacy
+          </Link>
+          <Link
+            href="/memorial"
+            className="bg-transparent text-ivory border border-border px-10 py-4 text-[10px] tracking-[4px] uppercase font-light transition-all duration-300 hover:border-gold hover:text-gold"
           >
-            Documentation
-          </a>
+            See a Memorial
+          </Link>
         </div>
-      </main>
+      </div>
+
+      {/* Scroll hint */}
+      <div className="animate-fade-in-delay-5 absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted text-[9px] tracking-[3px] uppercase">
+        <div className="w-px h-10 bg-gradient-to-b from-gold to-transparent animate-scroll-pulse" />
+        Scroll
+      </div>
     </div>
   );
 }
