@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { getApiErrorMessage } from "@/lib/api";
 
 type LoginField = "email" | "password";
 type LoginErrors = Partial<Record<LoginField, string>>;
@@ -35,7 +37,7 @@ function validate(values: LoginFormState): LoginErrors {
 
 export default function LoginPage() {
   const router = useRouter();
-  const timerRef = useRef<number | null>(null);
+  const auth = useAuth();
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -50,14 +52,13 @@ export default function LoginPage() {
     {}
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        window.clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
+    if (!auth.isLoading && auth.user) {
+      router.replace("/dashboard");
+    }
+  }, [auth.isLoading, auth.user, router]);
 
   function setField(field: keyof LoginFormState, value: string | boolean) {
     const next = { ...form, [field]: value } as LoginFormState;
@@ -83,9 +84,10 @@ export default function LoginPage() {
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || auth.isLoading) return;
+    setServerError(null);
 
     setTouched({ email: true, password: true });
     const nextErrors = validate(form);
@@ -97,9 +99,14 @@ export default function LoginPage() {
     }
 
     setIsSubmitting(true);
-    timerRef.current = window.setTimeout(() => {
+    try {
+      await auth.login(form.email, form.password, form.remember);
       router.push("/dashboard");
-    }, 700);
+    } catch (error) {
+      setServerError(getApiErrorMessage(error, "Login failed"));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -174,11 +181,14 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || auth.isLoading}
               className="w-full bg-gold text-black px-8 py-4 text-[10px] tracking-[4px] uppercase font-normal transition-all duration-300 hover:bg-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(201,168,76,0.28)] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
+            {serverError && (
+              <p className="text-[10px] text-[#d38787]">{serverError}</p>
+            )}
           </form>
 
           <p className="text-[11px] text-muted mt-5">

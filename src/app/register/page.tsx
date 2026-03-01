@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { getApiErrorMessage } from "@/lib/api";
 
 type RegisterField =
   | "fullName"
@@ -91,7 +93,7 @@ function validateForm(values: RegisterFormState): RegisterErrors {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const timerRef = useRef<number | null>(null);
+  const auth = useAuth();
 
   const fullNameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -113,17 +115,17 @@ export default function RegisterPage() {
     {}
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const passwordState = useMemo(() => evaluatePassword(form.password), [form.password]);
   const previewIntent = INTENTS.find((intent) => intent.id === form.intent);
 
+  // Redirect if already logged in
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        window.clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
+    if (!auth.isLoading && auth.user) {
+      router.replace("/dashboard");
+    }
+  }, [auth.isLoading, auth.user, router]);
 
   function setField<K extends keyof RegisterFormState>(field: K, value: RegisterFormState[K]) {
     const next = { ...form, [field]: value };
@@ -161,9 +163,10 @@ export default function RegisterPage() {
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || auth.isLoading) return;
+    setServerError(null);
 
     const nextTouched: Partial<Record<RegisterField, boolean>> = {
       fullName: true,
@@ -184,9 +187,21 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true);
-    timerRef.current = window.setTimeout(() => {
+    try {
+      await auth.register({
+        full_name: form.fullName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        confirm_password: form.confirmPassword,
+        intent: form.intent,
+        consent: form.consent,
+      });
       router.push("/onboarding");
-    }, 900);
+    } catch (error) {
+      setServerError(getApiErrorMessage(error, "Registration failed"));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -371,11 +386,14 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || auth.isLoading}
               className="w-full bg-gold text-black px-8 py-4 text-[10px] tracking-[4px] uppercase font-normal transition-all duration-300 hover:bg-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(201,168,76,0.28)] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSubmitting ? "Preparing Your Onboarding..." : "Create Account"}
             </button>
+            {serverError && (
+              <p className="text-[10px] text-[#d38787]">{serverError}</p>
+            )}
           </form>
 
           <p className="text-[11px] text-muted mt-5">
